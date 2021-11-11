@@ -4,7 +4,8 @@ function Copy-OctopusScriptModules
     (
         $SourceData,
         $DestinationData,
-        $cloneScriptOptions
+        $cloneScriptOptions,
+        $CloneLibraryVariableSets
     )
 
     $filteredList = Get-OctopusFilteredList -itemList $sourceData.ScriptModuleList -itemType "Script Modules" -filters $cloneScriptOptions.ScriptModulesToClone
@@ -48,9 +49,12 @@ function Copy-OctopusScriptModules
         $scriptModuleVariables = Get-OctopusVariableSetVariables -variableSet $scriptModule -OctopusData $sourceData
         $destinationVariableSetVariables = Get-OctopusVariableSetVariables -variableSet $destinationVariableSet -OctopusData $destinationData 
 
-        Write-OctopusPostCloneCleanUp "*****************Starting clone of script module $($scriptModule.Name)*****************"
-        Copy-OctopusVariableSetValues -SourceVariableSetVariables $scriptModuleVariables -DestinationVariableSetVariables $destinationVariableSetVariables -SourceData $SourceData -DestinationData $DestinationData -SourceProjectData @{} -DestinationProjectData @{} -CloneScriptOptions $newCloneScriptOptions
-        Write-OctopusPostCloneCleanUp "*****************Ending clone of script module $($scriptModule.Name)*******************"
+        if ($CloneLibraryVariableSets -eq $true)
+        {
+            Write-OctopusPostCloneCleanUp "*****************Starting clone of script module $($scriptModule.Name)*****************"
+            Copy-OctopusVariableSetValues -SourceVariableSetVariables $scriptModuleVariables -DestinationVariableSetVariables $destinationVariableSetVariables -SourceData $SourceData -DestinationData $DestinationData -SourceProjectData @{} -DestinationProjectData @{} -CloneScriptOptions $newCloneScriptOptions
+            Write-OctopusPostCloneCleanUp "*****************Ending clone of script module $($scriptModule.Name)*******************"
+        }
     }
 
     Write-OctopusSuccess "Script Modules successfully cloned"        

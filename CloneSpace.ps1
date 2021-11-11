@@ -49,6 +49,10 @@ param (
     $InfrastructureEnvironmentScopingMatch,
     $InfrastructureTenantScopingMatch,
     $ProcessCloningOption,
+    $CloneLibraryVariableSets,
+    $CloneVariables,
+    $ClonePackages,
+    $CloneEnvironments,
     $WhatIf
 )
 
@@ -158,6 +162,26 @@ if ($null -eq $CloneTenantVariables)
     $CloneTenantVariables = $false
 }
 
+if ($null -eq $CloneLibraryVariableSets)
+{
+    $CloneLibraryVariableSets = $true
+}
+
+if ($null -eq $CloneVariables)
+{
+    $CloneVariables = $true
+}
+
+if ($null -eq $CloneLifecycles)
+{
+    $CloneLifecycles = $true
+}
+
+if ($null -eq $CloneEnvironments)
+{
+    $CloneEnvironments = $true
+}
+
 if ($null -ne $CertificatesToClone -and $CertificatesToClone.ToLower().Trim() -eq "all")
 {
     Write-OctopusCritical "The parameter CertificatesToClone is set to 'all'.  That is the one parameter that cannot be set to all.  You must specify specific certificates to clone with their password."
@@ -219,6 +243,7 @@ $CloneScriptOptions = @{
     CloneProjectVersioningReleaseCreationSettings = $CloneProjectVersioningReleaseCreationSettings;
     CloneProjectDeploymentProcess = $CloneProjectDeploymentProcess; 
     CloneTenantVariables = $CloneTenantVariables;  
+    CloneEnvironments = $CloneEnvironments;
     ProcessEnvironmentScopingMatch = $ProcessEnvironmentScopingMatch;
     ProcessChannelScopingMatch = $ProcessChannelScopingMatch; 
     VariableChannelScopingMatch = $VariableChannelScopingMatch;
@@ -262,24 +287,37 @@ if ($sourceData.OctopusUrl -eq $destinationData.OctopusUrl -and $SourceSpaceName
     }
 }
 
-Copy-OctopusEnvironments -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
+if ($CloneEnvironments -eq $true)
+{
+    Copy-OctopusEnvironments -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
+}
 Copy-OctopusProjectGroups -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
 Copy-OctopusTenantTags -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
-Copy-OctopusBuiltInPackages -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions
+if ($ClonePackages -eq $true)
+{
+    Copy-OctopusBuiltInPackages -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions
+}
 Copy-OctopusExternalFeeds -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
 Copy-OctopusSpaceTeams -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
 Copy-OctopusStepTemplates -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
 Copy-OctopusInfrastructureAccounts -SourceData $sourceData -DestinationData $destinationData -CloneScriptOptions $CloneScriptOptions
-Copy-OctopusScriptModules -SourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
+Copy-OctopusScriptModules -SourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions $CloneLibraryVariableSets
 Copy-OctopusMachinePolicies -SourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
-Copy-OctopusLifecycles -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
+if ($CloneLifecycles -eq $true)
+{   
+    Copy-OctopusLifecycles -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
+}
+
 Copy-OctopusWorkerPools -sourceData $sourceData -destinationData $destinationData -cloneScriptOptions $CloneScriptOptions
 Copy-OctopusTenants -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions -firstRun $true
 Copy-OctopusWorkers -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions
 Copy-OctopusTargets -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions
 Copy-OctopusCertificates -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions
-Copy-OctopusLibraryVariableSets -SourceData $sourceData -DestinationData $destinationData  -cloneScriptOptions $CloneScriptOptions
-Copy-OctopusProjects -SourceData $sourceData -DestinationData $destinationData -CloneScriptOptions $CloneScriptOptions
+if ($CloneLibraryVariableSets -eq $true)
+{
+    Copy-OctopusLibraryVariableSets -SourceData $sourceData -DestinationData $destinationData  -cloneScriptOptions $CloneScriptOptions
+}
+Copy-OctopusProjects -SourceData $sourceData -DestinationData $destinationData -CloneScriptOptions $CloneScriptOptions $CloneVariables
 
 # Repeating tenant clone to get all the project assignments
 Copy-OctopusTenants -sourceData $sourceData -destinationData $destinationData -CloneScriptOptions $CloneScriptOptions -firstRun $false

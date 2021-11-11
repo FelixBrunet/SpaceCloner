@@ -82,7 +82,7 @@ $destinationData = Get-OctopusData -octopusUrl $DestinationOctopusUrl -octopusAp
 
 Compare-OctopusVersions -SourceData $sourceData -DestinationData $destinationData -IgnoreVersionCheckResult $IgnoreVersionCheckResult -SkipPausingWhenIgnoringVersionCheckResult $SkipPausingWhenIgnoringVersionCheckResult
 
-Copy-OctopusLibraryVariableSets -SourceData $sourceData -DestinationData $destinationData  -cloneScriptOptions $CloneScriptOptions
+Copy-OctopusLibraryVariableSets -SourceData $sourceData -DestinationData $destinationData  -cloneScriptOptions $CloneScriptOptions -CloneLibraryVariableSets $true
 
 $logPath = Get-OctopusLogPath
 $cleanupLogPath = Get-OctopusCleanUpLogPath
