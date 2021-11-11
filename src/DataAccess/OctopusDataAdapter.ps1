@@ -85,7 +85,7 @@ function Invoke-OctopusApi
         if ($null -ne $_.Exception.Response)
         {
             $streamReader = [System.IO.StreamReader]::new($_.Exception.Response.GetResponseStream())
-            $ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+            $ErrResp = $streamReader.ReadToEnd()
             $streamReader.Close()
 
             Write-OctopusVerbose $ErrResp
