@@ -84,6 +84,12 @@ function Invoke-OctopusApi
     {
         if ($null -ne $_.Exception.Response)
         {
+            $streamReader = [System.IO.StreamReader]::new($_.Exception.Response.GetResponseStream())
+            $ErrResp = $streamReader.ReadToEnd() | ConvertFrom-Json
+            $streamReader.Close()
+
+            Write-OctopusVerbose $ErrResp
+
             if ($_.Exception.Response.StatusCode -eq 401)
             {
                 Write-OctopusCritical "Unauthorized error returned from $url, please verify API key and try again"
