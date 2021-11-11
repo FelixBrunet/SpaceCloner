@@ -3,7 +3,8 @@ function Copy-OctopusProjects
     param(
         $SourceData,
         $DestinationData,
-        $CloneScriptOptions
+        $CloneScriptOptions,
+        $CloneVariables
     )  
     
     if ([string]::IsNullOrWhiteSpace($CloneScriptOptions.ParentProjectName) -eq $false -or [string]::IsNullOrWhiteSpace($CloneScriptOptions.ChildProjectsToSync) -eq $false)
@@ -37,9 +38,13 @@ function Copy-OctopusProjects
         $destinationProject = Copy-OctopusProjectSettings -sourceData $SourceData -destinationData $DestinationData -sourceProject $project                       
 
         $sourceChannels = Get-OctopusProjectChannelList -project $project -octopusData $sourceData
+
+
         $destinationChannels = Get-OctopusProjectChannelList -project $destinationProject -OctopusData $DestinationData
-        $destinationChannels = Copy-OctopusProjectChannels -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceData $SourceData -destinationData $DestinationData
-        
+        if ($CloneProjectChannelRules -eq $true)
+        {
+            $destinationChannels = Copy-OctopusProjectChannels -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceData $SourceData -destinationData $DestinationData
+        }
         if ($CloneScriptOptions.CloneProjectDeploymentProcess -eq $true)
         {
             Copy-OctopusProjectDeploymentProcess -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -sourceProject $project -destinationProject $destinationProject -sourceData $SourceData -destinationData $DestinationData -CloneScriptOptions $cloneScriptOptions
@@ -50,7 +55,10 @@ function Copy-OctopusProjects
             Copy-OctopusProjectRunbooks -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceProject $project -destinationData $DestinationData -sourceData $SourceData -cloneScriptOptions $CloneScriptOptions      
         }
 
-        Copy-OctopusProjectVariables -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceProject $project -destinationData $DestinationData -sourceData $SourceData -cloneScriptOptions $CloneScriptOptions        
+        if ($CloneVariables -eq $true)
+        {
+        	Copy-OctopusProjectVariables -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceProject $project -destinationData $DestinationData -sourceData $SourceData -cloneScriptOptions $CloneScriptOptions        
+ 	    }
         Copy-OctopusProjectChannelRules -sourceChannelList $sourceChannels -destinationChannelList $destinationChannels -destinationProject $destinationProject -sourceData $SourceData -destinationData $DestinationData -cloneScriptOptions $CloneScriptOptions
         $destinationProject = Copy-OctopusProjectReleaseVersioningSettings -sourceData $sourceData -sourceProject $project -sourceChannels $sourceChannels -destinationData $destinationData -destinationProject $destinationProject -destinationChannels $destinationChannels -CloneScriptOptions $CloneScriptOptions
         Copy-OctopusItemLogo -sourceItem $project -destinationItem $destinationProject -sourceData $SourceData -destinationData $DestinationData -CloneScriptOptions $CloneScriptOptions
@@ -76,13 +84,20 @@ function Copy-OctopusProjectSettings
         
         $copyOfProject.DeploymentProcessId = $null
         $copyOfProject.VariableSetId = $null
-        $copyOfProject.ClonedFromProjectId = $null                
-
-        $copyOfProject.IncludedLibraryVariableSetIds = @(Get-OctopusProjectReferencedVariableSets -project $copyOfProject -sourceProjectLibraryVariableSets @($copyOfProject.IncludedLibraryVariableSetIds) -sourceData $sourceData -destinationData $destinationData)                
+        $copyOfProject.ClonedFromProjectId = $null         
+        
+        if ($CloneLibraryVariableSets -eq $true)
+        {
+            $copyOfProject.IncludedLibraryVariableSetIds = @(Get-OctopusProjectReferencedVariableSets -project $copyOfProject -sourceProjectLibraryVariableSets @($copyOfProject.IncludedLibraryVariableSetIds) -sourceData $sourceData -destinationData $destinationData)                
+        }
 
         $copyOfProject.ProjectGroupId = Convert-SourceIdToDestinationId -SourceList $SourceData.ProjectGroupList -DestinationList $DestinationData.ProjectGroupList -IdValue $copyOfProject.ProjectGroupId -ItemName "$($copyOfProject.Name) Project Group" -MatchingOption "ErrorUnlessExactMatch"
-        $copyOfProject.LifeCycleId = Convert-SourceIdToDestinationId -SourceList $SourceData.LifeCycleList -DestinationList $DestinationData.LifeCycleList -IdValue $copyOfProject.LifeCycleId -ItemName "$($copyOfProject.Name) Default Lifecycle" -MatchingOption "ErrorUnlessExactMatch"
-
+        
+        if ($CloneLifecycles -eq $true)
+        {
+            $copyOfProject.LifeCycleId = Convert-SourceIdToDestinationId -SourceList $SourceData.LifeCycleList -DestinationList $DestinationData.LifeCycleList -IdValue $copyOfProject.LifeCycleId -ItemName "$($copyOfProject.Name) Default Lifecycle" -MatchingOption "ErrorUnlessExactMatch"
+        }
+        
         Write-OctopusPostCloneCleanUp "New project $($sourceProject.Name), resetting the versioning template to the default, removing the automatic release creation"
         $copyOfProject.VersioningStrategy.Template = "#{Octopus.Version.LastMajor}.#{Octopus.Version.LastMinor}.#{Octopus.Version.NextPatch}"
         $copyOfProject.VersioningStrategy.DonorPackage = $null
@@ -104,14 +119,18 @@ function Copy-OctopusProjectSettings
         Write-OctopusChangeLog " - Update $($sourceProject.Name)"        
 
         $existingVariableSetIds = @($matchingProject.IncludedLibraryVariableSetIds)
-        $matchingProject.IncludedLibraryVariableSetIds = @(Get-OctopusProjectReferencedVariableSets -project $sourceProject -sourceProjectLibraryVariableSets @($sourceProject.IncludedLibraryVariableSetIds) -sourceData $sourceData -destinationData $destinationData)
 
-        foreach ($variableSetId in $existingVariableSetIds)
+        if ($CloneLibraryVariableSets -eq $true)
         {
-            if ($matchingProject.IncludedLibraryVariableSetIds -notcontains $variableSetId)
+            $matchingProject.IncludedLibraryVariableSetIds = @(Get-OctopusProjectReferencedVariableSets -project $sourceProject -sourceProjectLibraryVariableSets @($sourceProject.IncludedLibraryVariableSetIds) -sourceData $sourceData -destinationData $destinationData)
+        
+            foreach ($variableSetId in $existingVariableSetIds)
             {
-                Write-OctopusVerbose "Adding $variableSetId back into the list because it was not in the source but it was on the destination"
-                $matchingProject.IncludedLibraryVariableSetIds += $variableSetId
+                if ($matchingProject.IncludedLibraryVariableSetIds -notcontains $variableSetId)
+                {
+                    Write-OctopusVerbose "Adding $variableSetId back into the list because it was not in the source but it was on the destination"
+                    $matchingProject.IncludedLibraryVariableSetIds += $variableSetId
+                }
             }
         }
 

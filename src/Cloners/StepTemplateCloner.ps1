@@ -59,6 +59,12 @@ function Copy-OctopusStepTemplates
 
             Convert-OctopusPackageList -item $stepTemplateToClone -SourceData $sourceData -destinationData $destinationData
 
+            # PATCH for invalid step template
+            if ($stepTemplateToClone.Properties."Octopus.Action.Package.FeedId" -eq "feeds-builtin")
+            {
+                $stepTemplateToClone.Properties."Octopus.Action.Package.FeedId" = $null
+            }
+
             $destinationStepTemplate = Save-OctopusStepTemplate -StepTemplate $stepTemplateToClone -DestinationData $destinationData            
 
             Copy-OctopusItemLogo -sourceItem $stepTemplate -destinationItem $destinationStepTemplate -sourceData $SourceData -destinationData $DestinationData -CloneScriptOptions $CloneScriptOptions

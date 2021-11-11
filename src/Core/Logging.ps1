@@ -1,6 +1,6 @@
 $currentDate = Get-Date
 $currentDateFormatted = $currentDate.ToString("yyyy_MM_dd_HH_mm_ss")
-$clonerVersion = "3.0.0"
+$clonerVersion = "3.0.2"
 
 $logFolder = "$PSScriptRoot\..\..\"
 $logArchiveFolder = "$PSScriptRoot\..\..\logs\archive_$currentDateFormatted" 
@@ -33,15 +33,21 @@ function Write-OctopusVerbose
 {
     param($message) 
        
-    Write-Verbose $message    
-    Write-OctopusLog $message
+    if ($null -ne $message)
+    {
+        Write-Verbose $message
+        Write-OctopusLog $message
+    }
 }
 
 function Write-OctopusChangeLog
 {
     param ($message)
 
-    Add-Content -Value $message -Path $changeLog
+    if ($null -ne $message)
+    {
+        Add-Content -Value $message -Path $changeLog
+    }
 }
 
 function Write-OctopusChangeLogListDetails
@@ -88,25 +94,34 @@ function Write-OctopusChangeLogListDetails
 function Write-OctopusSuccess
 {
     param($message)
-
-    Write-Host $message -ForegroundColor Green
-    Write-OctopusLog $message    
+    
+    if ($null -ne $message)
+    {
+        Write-Host $message -ForegroundColor Green
+        Write-OctopusLog $message    
+    }
 }
 
 function Write-OctopusWarning
 {
     param($message)
 
-    Write-Host "Warning $message" -ForegroundColor Yellow    
-    Write-OctopusLog $message
+    if ($null -ne $message)
+    {
+        Write-Host "Warning $message" -ForegroundColor Yellow    
+        Write-OctopusLog $message
+    }
 }
 
 function Write-OctopusCritical
 {
     param ($message)
 
-    Write-Host "Critical Message: $message" -ForegroundColor Red
-    Write-OctopusLog $message
+    if ($null -ne $message)
+    {
+        Write-Host "Critical Message: $message" -ForegroundColor Red
+        Write-OctopusLog $message
+    }
 }
 
 function Write-OctopusPostCloneCleanUp
@@ -127,7 +142,7 @@ function Write-OctopusLog
 {
     param ($message)
 
-    Add-Content -Value $message -Path $logPath
+   $message | Out-File -FilePath $logPath -Append
 }
 
 Write-OctopusSuccess "Using version $clonerVersion of the cloner."
