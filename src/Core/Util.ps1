@@ -50,15 +50,11 @@ function Get-OctopusItemById
         ) 
         
     Write-OctopusVerbose "Attempting to find $ItemId in the item list of $($ItemList.Length) item(s)"
-
-    foreach($item in $ItemList)
+    
+    if ($ItemList.Count)
     {
-        Write-OctopusVerbose "Checking to see if $($item.Id) matches with $ItemId"
-        if ($item.Id -eq $ItemId)
-        {
-            Write-OctopusVerbose "The Ids match, return the item $($item.Name)"
-            return $item
-        }
+        $items = $ItemList.Where({$_.Id -eq $ItemId})
+        return $items[0];
     }
 
     Write-OctopusVerbose "No match found returning null"
@@ -94,14 +90,10 @@ function Get-OctopusItemByPackageId
         
     Write-OctopusVerbose "Attempting to find $ItemPackageId in the item list of $($ItemList.Length) item(s)"
 
-    foreach($item in $ItemList)
+    if ($ItemList.Count)
     {
-        Write-OctopusVerbose "Checking to see if $($item.PackageId) matches with $ItemPackageId"
-        if ($item.PackageId -eq $ItemPackageId)
-        {
-            Write-OctopusVerbose "The Ids match, return the item $($item.PackageId)"
-            return $item
-        }
+        $items = $ItemList.Where({$_.PackageId -eq $ItemPackageId})
+        return $items[0];
     }
 
     Write-OctopusVerbose "No match found returning null"
@@ -117,6 +109,10 @@ function Convert-SourceIdToDestinationId
         $ItemName,
         $MatchingOption
     )
+    if([string]::IsNullOrEmpty($IdValue))
+    {
+        return $null
+    }  
 
     $idValueSplit = $IdValue -split "-"
     if ($idValueSplit.Length -le 2 -and $IdValue.Tolower().Trim() -ne "feeds-builtin" -and $IdValue.Tolower().Trim() -ne "feeds-builtin-releases")
@@ -390,32 +386,32 @@ function New-OctopusFilteredList
     if ([string]::IsNullOrWhiteSpace($filters) -eq $false -and $null -ne $itemList)
     {
         $splitFilters = $filters -split ","
-
-        foreach($item in $itemList)
-        {
-            foreach ($filter in $splitFilters)
+ 
+        foreach ($filter in $splitFilters)
+        {   
+            if (($filter).ToLower().Trim() -eq "all")
             {
-                Write-OctopusVerbose "Checking to see if $filter matches $($item.Name)"
-                if ([string]::IsNullOrWhiteSpace($filter))
-                {
-                    continue
-                }
-                if (($filter).ToLower().Trim() -eq "all")
-                {
-                    Write-OctopusVerbose "The filter is 'all' -> adding $($item.Name) to $itemType filtered list"
-                    $filteredList += $item
-                }
-                elseif ($item.Name -like $filter)
-                {
-                    Write-OctopusVerbose "The filter $filter matches $($item.Name), adding $($item.Name) to $itemType filtered list"
-                    $filteredList += $item
-                }
-                else
-                {
-                    Write-OctopusVerbose "The item $($item.Name) does not match filter $filter"
-                }
+                Write-OctopusVerbose "The filter is 'all' -> adding $($itemList.Name) to $itemType filtered list"
+                $filteredList = $itemList;
+                break;
             }
-        }
+
+            Write-OctopusVerbose "Checking to see if $filter matches $($item.Name)"
+            if ([string]::IsNullOrWhiteSpace($filter))
+            {
+                continue
+            }
+
+            $items = $itemList.Where({$_.Name -eq $filter})
+            if ($items.Count)
+            {
+                $filteredList += $items[0]
+            }
+            else
+            {
+                Write-OctopusVerbose "The item $($item.Name) does not match filter $filter"
+            }
+        }    
     }
     else
     {
@@ -441,29 +437,26 @@ function New-OctopusPackageIdFilteredList
     {
         $splitFilters = $filters -split ","
 
-        foreach($item in $itemList)
+        foreach ($filter in $splitFilters)
         {
-            foreach ($filter in $splitFilters)
+            if (($filter).ToLower().Trim() -eq "all")
             {
-                Write-OctopusVerbose "Checking to see if $filter matches $($item.PackageId)"
-                if ([string]::IsNullOrWhiteSpace($filter))
-                {
-                    continue
-                }
-                if (($filter).ToLower() -eq "all")
-                {
-                    Write-OctopusVerbose "The filter is 'all' -> adding $($item.PackageId) to $itemType filtered list"
-                    $filteredList += $item
-                }
-                elseif ($item.PackageId -like $filter)
-                {
-                    Write-OctopusVerbose "The filter $filter matches $($item.PackageId), adding $($item.PackageId) to $itemType filtered list"
-                    $filteredList += $item
-                }
-                else
-                {
-                    Write-OctopusVerbose "The item $($item.PackageId) does not match filter $filter"
-                }
+                Write-OctopusVerbose "The filter is 'all' -> adding $($itemList.Name) to $itemType filtered list"
+                $filteredList = $itemList
+                break;
+            }
+
+            Write-OctopusVerbose "Checking to see if $filter matches $($item.PackageId)"
+            if ([string]::IsNullOrWhiteSpace($filter))
+            {
+                continue
+            }
+
+            $items = $ItemList.Where({$_.PackageId -eq $filter})
+            if ($items.Count)
+            {
+                $filteredList += $items[0]
+                continue;
             }
         }
     }
@@ -659,14 +652,12 @@ function Test-OctopusScopeMatchParameter
         $singleValueItem
     )
 
-    
     if ([string]::IsNullOrWhiteSpace($parameterValue))
     {
         return $defaultValue
     }
 
     $lowerParameterValue = $parameterValue.ToLower().Trim()
-
 
     if ($singleValueItem)
     {
