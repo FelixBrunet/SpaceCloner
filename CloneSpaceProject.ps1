@@ -38,6 +38,7 @@ param (
     $CloneEnvironments,
     $ClonePackages,
     $CloneLifecycles,
+    $LifeCyclesToClone,
     $TenantTagsToClone,
     $WhatIf  
 )
@@ -676,9 +677,15 @@ foreach ($project in $projectListToClone)
     if ($CloneLifecycles -eq $true)
     {
         $sourceChannels = Get-OctopusProjectChannelList -project $project -octopusData $sourceData
+        $cloneAllowed = $false
+        if ($null -ne $channel.LifeCycleId -and $null -ne $LifeCyclesToClone)
+        {
+            $cloneAllowed = $LifeCyclesToClone.Contains($channel.LifeCycleId)
+        }
+
         foreach ($channel in $sourceChannels)
         {
-            if ($null -ne $channel.LifeCycleId)
+            if ($null -ne $channel.LifeCycleId -and $cloneAllowed)
             {
                 Write-OctopusSuccess "Adding lifecycle for channel name $($channel.Name) in $($project.Name)"
                 $cloneSpaceCommandLineOptions.LifeCyclesToClone = Add-OctopusIdToCloneList -itemId $channel.LifeCycleId -itemType "Lifecycle" -destinationList $cloneSpaceCommandLineOptions.LifeCyclesToClone -sourceList $sourceData.LifeCycleList -exclusionList @()
